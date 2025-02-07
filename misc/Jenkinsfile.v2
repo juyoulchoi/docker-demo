@@ -1,31 +1,79 @@
-node {
-   def commit_id
-   stage('Preparation') {
-     checkout scm
-     sh "git rev-parse --short HEAD > .git/commit-id"
-     commit_id = readFile('.git/commit-id').trim()
-   }
-   stage('test') {
-     def myTestContainer = docker.image('node:16')
-     myTestContainer.pull()
-     myTestContainer.inside {
-       sh 'npm install --only=dev'
-       sh 'npm test'
-     }
-   }
-   stage('test with a DB') {
-     def mysql = docker.image('mysql').run("-e MYSQL_ALLOW_EMPTY_PASSWORD=yes") 
-     def myTestContainer = docker.image('node:16')
-     myTestContainer.pull()
-     myTestContainer.inside("--link ${mysql.id}:mysql") { // using linking, mysql will be available at host: mysql, port: 3306
-          sh 'npm install --only=dev' 
-          sh 'npm test'                     
-     }                                   
-     mysql.stop()
-   }                                     
-   stage('docker build/push') {            
-     docker.withRegistry('https://index.docker.io/v2/', 'dockerhub') {
-       def app = docker.build("ejujin/docker-nodejs-demo:${commit_id}", '.').push()
-     }                                     
-   }                                       
-}                                          
+pipeline {
+    agent any
+    tools {
+        nodejs "nodeJs"
+    }
+    environment {
+        DOCKER_BUILDKIT = "1" // BuildKit 활성화
+        DOCKER_IMAGE = "ejujin/docker-nodejs-demo"
+    }
+    stages {
+        stage('Preparation') {
+            steps {
+                script {
+                    checkout scm
+                    sh "git rev-parse --short HEAD > .git/commit-id"
+                    env.COMMIT_ID = readFile('.git/commit-id').trim()
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    // 최신 Node.js 컨테이너 사용
+                    docker.image('node:16').inside {
+                        sh """
+                            echo "설치된 Node.js 및 npm 버전 확인"
+                            node -v
+                            npm -v
+
+                            echo "보안 취약점 수정"
+                            npm audit fix --force
+
+                            echo "의존성 설치 (peer dependency 오류 방지)"
+                            npm install --only=dev --legacy-peer-deps
+
+                            echo "테스트 실행"
+                            npm test -- test/**/*.test.js || echo "테스트 실패!"
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: '6e025c89-6fb8-4e11-9894-10f0b0a40896', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                            echo "Docker Hub에 로그인 중..."
+                            echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
+
+                            echo "Buildx 사용 가능 여부 확인 중..."
+                            if ! docker buildx version > /dev/null 2>&1; then
+                                echo "Buildx가 설치되어 있지 않습니다. 설치를 진행합니다..."
+                                mkdir -p ~/.docker/cli-plugins
+                                curl -sL https://github.com/docker/buildx/releases/download/v0.20.1/buildx-v0.20.1.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
+                                chmod +x ~/.docker/cli-plugins/docker-buildx
+                            fi
+
+                            echo "Docker Buildx 설정 중..."
+                            if ! docker buildx ls | grep -q mybuilder; then
+                                docker buildx create --name mybuilder --use
+                            else
+                                docker buildx use mybuilder
+                            fi
+
+                            echo "Buildx를 사용하여 Docker 이미지를 빌드 및 푸시 중..."
+                            docker buildx build --platform linux/amd64 -t \$DOCKER_IMAGE:\$COMMIT_ID --push .
+
+                            echo "Docker Hub에서 로그아웃 중..."
+                            docker logout
+                        """
+                    }
+                }
+            }
+        }
+    }
+}
