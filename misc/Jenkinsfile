@@ -1,22 +1,42 @@
-node {
-   def commit_id
-   stage('Preparation') {
-     checkout scm
-     sh "git rev-parse --short HEAD > .git/commit-id"                        
-     commit_id = readFile('.git/commit-id').trim()
+pipeline {
+    agent any
+    tools {
+        nodejs "NodeJS"  // Global Tool Configuration에서 설정한 정확한 Node.js 이름 사용
+    }
+    environment {
+        DOCKER_REGISTRY = 'https://index.docker.io/v2/'
+        DOCKER_CREDENTIALS = 'dockerhub' // Jenkins의 Docker Hub 자격증명 ID
+    }
+    stages {
+        stage('Preparation') {
+            steps {
+                script {
+                    checkout scm
+                    sh "git rev-parse --short HEAD > .git/commit-id"
+                    env.COMMIT_ID = readFile('.git/commit-id').trim()
 
-      def nodejsTool = tool name: 'NodeJS 23', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
-      env.PATH = "${nodejsTool}/bin:${env.PATH}"
-   }
+                    // Node.js 경로 추가
+                    def nodejsTool = tool name: 'NodeJS', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
+                    env.PATH = "${nodejsTool}/bin:${env.PATH}"
+                }
+            }
+        }
 
-   stage('Build') {
-        sh 'node -v'
-        sh 'npm -v'
-   }
+        stage('Build') {
+            steps {
+                sh 'node -v'
+                sh 'npm -v'
+            }
+        }
 
-   stage('docker build/push') {
-     docker.withRegistry('https://index.docker.io/v2/', 'dockerhub') {
-       def app = docker.build("ejujin/docker-nodejs-demo:${commit_id}", '.').push()
-     }
-   }
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    docker.withRegistry(env.DOCKER_REGISTRY, env.DOCKER_CREDENTIALS) {
+                        docker.build("ejujin/docker-nodejs-demo:${env.COMMIT_ID}").push()
+                    }
+                }
+            }
+        }
+    }
 }
