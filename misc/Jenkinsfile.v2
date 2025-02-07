@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     environment {
+        DOCKER_BUILDKIT = "1" // BuildKit 활성화
         DOCKER_IMAGE = "ejujin/docker-nodejs-demo"
     }
 
