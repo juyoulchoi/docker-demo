@@ -33,9 +33,16 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    docker.withRegistry(env.DOCKER_REGISTRY, env.DOCKER_CREDENTIALS) {
-                        docker.build("ejujin/docker-nodejs-demo:${env.COMMIT_ID}").push()
-                    }
+                    sh """
+                        echo "Logging into Docker Hub..."
+                        echo "\$DOCKER_CREDENTIALS" | docker login -u username --password-stdin
+
+                        echo "Building Docker image..."
+                        docker build -t \$DOCKER_IMAGE:\$COMMIT_ID .
+
+                        echo "Pushing Docker image..."
+                        docker push \$DOCKER_IMAGE:\$COMMIT_ID
+                    """
                 }
             }
         }
