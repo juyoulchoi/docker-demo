@@ -1,7 +1,7 @@
 pipeline {
     agent any
     tools {
-        nodejs "NodeJS"  // Global Tool Configuration에서 설정한 정확한 Node.js 이름 사용
+        nodejs "nodeJs"  // Global Tool Configuration에서 설정한 정확한 Node.js 이름 사용
     }
     environment {
         DOCKER_REGISTRY = 'https://index.docker.io/v2/'
@@ -16,7 +16,7 @@ pipeline {
                     env.COMMIT_ID = readFile('.git/commit-id').trim()
 
                     // Node.js 경로 추가
-                    def nodejsTool = tool name: 'NodeJS', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
+                    def nodejsTool = tool name: 'nodeJs', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
                     env.PATH = "${nodejsTool}/bin:${env.PATH}"
                 }
             }
