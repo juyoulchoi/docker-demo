@@ -4,7 +4,8 @@ pipeline {
         nodejs "nodeJs"  // Global Tool Configuration에서 설정한 정확한 Node.js 이름 사용
     }
     environment {
-        DOCKER_REGISTRY = 'https://index.docker.io/v2/'
+        DOCKER_REGISTRY = 'index.docker.io'
+        DOCKER_IMAGE = "ejujin/docker-nodejs-demo"
         DOCKER_CREDENTIALS = 'dockerhub' // Jenkins의 Docker Hub 자격증명 ID
     }
     stages {
