@@ -37,7 +37,7 @@ pipeline {
                             echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
 
                             echo "Setting up Docker Buildx..."
-                            docker buildx create --name mybuilder --use
+                            docker buildx create mybuilder --use
                             docker buildx inspect --bootstrap
 
                             echo "Building Docker image with Buildx..."
