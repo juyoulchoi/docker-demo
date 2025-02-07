@@ -1,7 +1,7 @@
 pipeline {
     agent any
     tools {
-        nodejs "NodeJS 18"
+        nodejs "nodeJs"
     }
     environment {
         DOCKER_BUILDKIT = "1" // BuildKit 활성화
@@ -15,7 +15,7 @@ pipeline {
                     sh "git rev-parse --short HEAD > .git/commit-id"
                     env.COMMIT_ID = readFile('.git/commit-id').trim()
 
-                    def nodejsTool = tool name: 'NodeJS 18', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
+                    def nodejsTool = tool name: 'nodeJs', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
                     env.PATH = "${nodejsTool}/bin:${env.PATH}"
                 }
             }
@@ -31,7 +31,7 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    withCredentials([usernamePassword(credentialsId: '6e025c89-6fb8-4e11-9894-10f0b0a40896', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh """
                             echo "Logging into Docker Hub..."
                             echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
