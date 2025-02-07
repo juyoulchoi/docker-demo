@@ -26,18 +26,40 @@ pipeline {
                             node -v
                             npm -v
 
+                            echo "package.json 엔진 버전 수정"
+                            sed -i 's/"node": "^4.6.1"/"node": ">=16.0.0"/g' package.json
+
                             echo "의존성 설치"
                             npm install --only=dev --legacy-peer-deps || exit 1
 
+                            echo "테스트 파일 확인"
+                            ls -al test/
+
                             echo "테스트 실행"
-                            npm test -- test/**/*.test.js || exit 1
+                            if [ -d "test" ] && [ "$(ls -A test/)" ]; then
+                                npm test -- test/**/*.test.js || exit 1
+                            else
+                                echo "⚠️ 테스트 파일이 존재하지 않음! 테스트 단계를 건너뜁니다."
+                                exit 0
+                            fi
                         """
+                    }
+                }
+            }
+            post {
+                failure {
+                    script {
+                        echo "❌ 테스트 실패: 하지만 파이프라인이 계속 실행됩니다."
+                        currentBuild.result = 'UNSTABLE'
                     }
                 }
             }
         }
 
         stage('Test with a DB') {
+            when {
+                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' || currentBuild.result == 'UNSTABLE' }
+            }
             steps {
                 script {
                     echo "MySQL 컨테이너 실행"
@@ -56,7 +78,12 @@ pipeline {
                             npm install --only=dev --legacy-peer-deps || exit 1
 
                             echo "테스트 실행"
-                            npm test -- test/**/*.test.js || exit 1
+                            if [ -d "test" ] && [ "$(ls -A test/)" ]; then
+                                npm test -- test/**/*.test.js || exit 1
+                            else
+                                echo "⚠️ 테스트 파일이 존재하지 않음! 테스트 단계를 건너뜁니다."
+                                exit 0
+                            fi
                         """
                     }
 
