@@ -12,6 +12,11 @@ node {
      }
    }
    stage('docker build/push') {
+    nodejs(nodeJSInstallationName: 'nodejs') {
+       sh 'npm install --only=dev'
+       sh 'npm test'
+     }
+     
      docker.withRegistry('https://index.docker.io/v2/', 'dockerhub') {
        def app = docker.build("ejujin/docker-nodejs-demo:${commit_id}", '.').push()
      }
