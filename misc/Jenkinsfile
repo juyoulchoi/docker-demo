@@ -1,9 +1,10 @@
 pipeline {
     agent any
     tools {
-        nodejs "nodeJs"  // Global Tool Configuration에서 설정한 정확한 Node.js 이름 사용
+        nodejs "nodeJs"
     }
     environment {
+        DOCKER_BUILDKIT = "1" // BuildKit 활성화
         DOCKER_REGISTRY = 'registry-1.docker.io'
         DOCKER_IMAGE = "ejujin/docker-nodejs-demo"
     }
@@ -15,7 +16,6 @@ pipeline {
                     sh "git rev-parse --short HEAD > .git/commit-id"
                     env.COMMIT_ID = readFile('.git/commit-id').trim()
 
-                    // Node.js 경로 추가
                     def nodejsTool = tool name: 'nodeJs', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
                     env.PATH = "${nodejsTool}/bin:${env.PATH}"
                 }
@@ -37,7 +37,8 @@ pipeline {
                             echo "Logging into Docker Hub..."
                             echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
 
-                            echo "Building Docker image..."
+                            echo "Building Docker image with BuildKit..."
+                            export DOCKER_BUILDKIT=1
                             docker build -t \$DOCKER_IMAGE:\$COMMIT_ID .
 
                             echo "Pushing Docker image..."
