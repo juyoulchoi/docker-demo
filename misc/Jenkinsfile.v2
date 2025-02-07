@@ -40,4 +40,42 @@ pipeline {
         stage('Test with a DB') {
             steps {
                 script {
-   
+                    echo "MySQL 컨테이너 실행"
+                    def mysql = docker.image('mysql').run("-e MYSQL_ALLOW_EMPTY_PASSWORD=yes")
+
+                    docker.image('node:16').pull()
+                    docker.image('node:16').inside("--link ${mysql.id}:mysql") {
+                        sh """
+                            echo "MySQL 클라이언트 설치"
+                            apt update && apt install -y mysql-client
+
+                            echo "MySQL 연결 테스트"
+                            mysql --host=mysql --port=3306 -u root -e 'SHOW DATABASES;'
+
+                            echo "의존성 설치"
+                            npm install --only=dev --legacy-peer-deps
+
+                            echo "테스트 실행"
+                            npm test -- test/**/*.test.js || echo "테스트 실패!"
+                        """
+                    }
+
+                    echo "MySQL 컨테이너 종료"
+                    mysql.stop()
+                    mysql.remove()
+                }
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v2/', 'dockerhub') {
+                        echo "Docker 이미지 빌드 및 푸시"
+                        docker.build("${DOCKER_IMAGE}:${env.COMMIT_ID}", '.').push()
+                    }
+                }
+            }
+        }
+    }
+}
