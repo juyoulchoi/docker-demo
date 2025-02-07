@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_BUILDKIT = "1" // BuildKit 활성화
         DOCKER_IMAGE = "ejujin/docker-nodejs-demo"
     }
 
@@ -16,6 +15,7 @@ pipeline {
                 }
             }
         }
+
         stage('Test') {
             steps {
                 script {
@@ -27,10 +27,10 @@ pipeline {
                             npm -v
 
                             echo "의존성 설치"
-                            npm install --only=dev --legacy-peer-deps
+                            npm install --only=dev --legacy-peer-deps || exit 1
 
                             echo "테스트 실행"
-                            npm test -- test/**/*.test.js || echo "테스트 실패!"
+                            npm test -- test/**/*.test.js || exit 1
                         """
                     }
                 }
@@ -47,16 +47,16 @@ pipeline {
                     docker.image('node:16').inside("--link ${mysql.id}:mysql") {
                         sh """
                             echo "MySQL 클라이언트 설치"
-                            apt update && apt install -y mysql-client
+                            apt update && apt install -y mysql-client || exit 1
 
                             echo "MySQL 연결 테스트"
-                            mysql --host=mysql --port=3306 -u root -e 'SHOW DATABASES;'
+                            mysql --host=mysql --port=3306 -u root -e 'SHOW DATABASES;' || exit 1
 
                             echo "의존성 설치"
-                            npm install --only=dev --legacy-peer-deps
+                            npm install --only=dev --legacy-peer-deps || exit 1
 
                             echo "테스트 실행"
-                            npm test -- test/**/*.test.js || echo "테스트 실패!"
+                            npm test -- test/**/*.test.js || exit 1
                         """
                     }
 
@@ -68,34 +68,31 @@ pipeline {
         }
 
         stage('Docker Build & Push') {
+            when {
+                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+            }
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: '6e025c89-6fb8-4e11-9894-10f0b0a40896', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh """
-                            echo "Docker Hub에 로그인 중..."
-                            echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
-
-                            echo "Buildx 사용 가능 여부 확인 중..."
-                            if ! docker buildx version > /dev/null 2>&1; then
-                                echo "Buildx가 설치되어 있지 않습니다. 설치를 진행합니다..."
+                    docker.withRegistry('https://index.docker.io/v2/', 'dockerhub') {
+                        echo "Buildx 사용 가능 여부 확인 중..."
+                        if (!sh(script: "docker buildx version > /dev/null 2>&1", returnStatus: true)) {
+                            echo "Buildx가 설치되지 않음. 설치 진행..."
+                            sh """
                                 mkdir -p ~/.docker/cli-plugins
                                 curl -sL https://github.com/docker/buildx/releases/download/v0.20.1/buildx-v0.20.1.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
                                 chmod +x ~/.docker/cli-plugins/docker-buildx
-                            fi
+                            """
+                        }
 
-                            echo "Docker Buildx 설정 중..."
-                            if ! docker buildx ls | grep -q mybuilder; then
-                                docker buildx create --name mybuilder --use
-                            else
-                                docker buildx use mybuilder
-                            fi
+                        echo "Docker Buildx 설정 중..."
+                        if (!sh(script: "docker buildx ls | grep -q mybuilder", returnStatus: true)) {
+                            sh "docker buildx create --name mybuilder --use"
+                        } else {
+                            sh "docker buildx use mybuilder"
+                        }
 
-                            echo "Buildx를 사용하여 Docker 이미지를 빌드 및 푸시 중..."
-                            docker buildx build --platform linux/amd64 -t \$DOCKER_IMAGE:\$COMMIT_ID --push .
-
-                            echo "Docker Hub에서 로그아웃 중..."
-                            docker logout
-                        """
+                        echo "Docker 이미지 빌드 및 푸시"
+                        docker.build("${DOCKER_IMAGE}:${env.COMMIT_ID}", '.').push()
                     }
                 }
             }
