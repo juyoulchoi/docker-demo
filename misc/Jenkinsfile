@@ -4,7 +4,7 @@ pipeline {
         nodejs "nodeJs"  // Global Tool Configuration에서 설정한 정확한 Node.js 이름 사용
     }
     environment {
-        DOCKER_REGISTRY = 'index.docker.io'
+        DOCKER_REGISTRY = 'registry-1.docker.io'
         DOCKER_IMAGE = "ejujin/docker-nodejs-demo"
     }
     stages {
@@ -32,7 +32,7 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: '6e025c89-6fb8-4e11-9894-10f0b0a40896', usernameVariable: 'juyoulchoi@nate.com ')]) {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh """
                             echo "Logging into Docker Hub..."
                             echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
@@ -47,6 +47,5 @@ pipeline {
                 }
             }
         }
-    }
     }
 }
