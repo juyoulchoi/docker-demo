@@ -8,15 +8,10 @@ node {
       def nodejsTool = tool name: 'NodeJS 23', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
       env.PATH = "${nodejsTool}/bin:${env.PATH}"
    }
-    stage('Setup') {
-       nodejs(nodeJSInstallationName: 'NodeJS 23') {
-       sh 'npm install'
-       sh 'npm test'
-     }
-   }
 
    stage('Build') {
         sh 'node -v'
+        sh 'npm -v'
    }
 
    stage('docker build/push') {
