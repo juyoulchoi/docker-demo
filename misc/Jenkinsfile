@@ -6,7 +6,6 @@ pipeline {
     environment {
         DOCKER_REGISTRY = 'index.docker.io'
         DOCKER_IMAGE = "ejujin/docker-nodejs-demo"
-        DOCKER_CREDENTIALS = '6e025c89-6fb8-4e11-9894-10f0b0a40896' // Jenkins의 Docker Hub 자격증명 ID
     }
     stages {
         stage('Preparation') {
@@ -33,18 +32,21 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    sh """
-                        echo "Logging into Docker Hub..."
-                        echo "\$DOCKER_CREDENTIALS" | docker login -u username --password-stdin
+                    withCredentials([usernamePassword(credentialsId: '6e025c89-6fb8-4e11-9894-10f0b0a40896', usernameVariable: 'juyoulchoi@nate.com ')]) {
+                        sh """
+                            echo "Logging into Docker Hub..."
+                            echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
 
-                        echo "Building Docker image..."
-                        docker build -t \$DOCKER_IMAGE:\$COMMIT_ID .
+                            echo "Building Docker image..."
+                            docker build -t \$DOCKER_IMAGE:\$COMMIT_ID .
 
-                        echo "Pushing Docker image..."
-                        docker push \$DOCKER_IMAGE:\$COMMIT_ID
-                    """
+                            echo "Pushing Docker image..."
+                            docker push \$DOCKER_IMAGE:\$COMMIT_ID
+                        """
+                    }
                 }
             }
         }
+    }
     }
 }
