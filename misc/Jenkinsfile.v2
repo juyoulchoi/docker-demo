@@ -108,7 +108,7 @@ pipeline {
             }
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v2/', 'dockerhub') {
+                    docker.withRegistry('https://index.docker.io/v2/', '6e025c89-6fb8-4e11-9894-10f0b0a40896') {
                         echo "Buildx 사용 가능 여부 확인 중..."
                         def buildxExists = sh(script: "docker buildx version", returnStatus: true) == 0
                         
