@@ -6,7 +6,7 @@ pipeline {
     environment {
         DOCKER_REGISTRY = 'index.docker.io'
         DOCKER_IMAGE = "ejujin/docker-nodejs-demo"
-        DOCKER_CREDENTIALS = 'dockerhub' // Jenkins의 Docker Hub 자격증명 ID
+        DOCKER_CREDENTIALS = '6e025c89-6fb8-4e11-9894-10f0b0a40896' // Jenkins의 Docker Hub 자격증명 ID
     }
     stages {
         stage('Preparation') {
