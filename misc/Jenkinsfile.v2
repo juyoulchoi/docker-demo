@@ -21,13 +21,13 @@ pipeline {
                 script {
                     docker.image('node:16').pull()
                     docker.image('node:16').inside {
-                        sh ""
+                        sh '''
                             echo "Node.js 및 npm 버전 확인"
                             node -v
                             npm -v
 
                             echo "package.json 엔진 버전 수정"
-                            sed -i "s/\\"node\\": \\"^4.6.1\\"/\\"node\\": \\">=16.0.0\\"/g" package.json
+                            sed -i \'s/"node": "\\^4.6.1"/"node": ">=16.0.0"/g\' package.json
 
                             echo "의존성 설치"
                             npm install --only=dev --legacy-peer-deps || exit 1
@@ -42,7 +42,7 @@ pipeline {
                                 echo "⚠️ 테스트 파일이 존재하지 않음! 테스트 단계를 건너뜁니다."
                                 exit 0
                             fi
-                        ""
+                        '''
                     }
                 }
             }
@@ -67,12 +67,12 @@ pipeline {
 
                     docker.image('node:16').pull()
                     docker.image('node:16').inside("--link ${mysql.id}:mysql") {
-                        sh """
+                        sh '''
                             echo "MySQL 클라이언트 설치"
                             apt update && apt install -y mysql-client || exit 1
 
                             echo "MySQL 연결 테스트"
-                            mysql --host=mysql --port=3306 -u root -e 'SHOW DATABASES;' || exit 1
+                            mysql --host=mysql --port=3306 -u root -e "SHOW DATABASES;" || exit 1
 
                             echo "의존성 설치"
                             npm install --only=dev --legacy-peer-deps || exit 1
@@ -84,7 +84,7 @@ pipeline {
                                 echo "⚠️ 테스트 파일이 존재하지 않음! 테스트 단계를 건너뜁니다."
                                 exit 0
                             fi
-                        """
+                        '''
                     }
 
                     echo "MySQL 컨테이너 종료"
@@ -106,11 +106,11 @@ pipeline {
                         
                         if (!buildxExists) {
                             echo "Buildx가 설치되지 않음. 설치 진행..."
-                            sh """
+                            sh '''
                                 mkdir -p ~/.docker/cli-plugins
                                 curl -sL https://github.com/docker/buildx/releases/latest/download/buildx-v0.20.1.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
                                 chmod +x ~/.docker/cli-plugins/docker-buildx
-                            """
+                            '''
                         }
 
                         echo "Docker Buildx 설정 중..."
@@ -122,10 +122,10 @@ pipeline {
                         }
 
                         echo "Docker 이미지 빌드 및 푸시"
-                        sh """
+                        sh '''
                             docker buildx inspect mybuilder || docker buildx create --name mybuilder --use
                             docker buildx build --platform linux/amd64 -t ${DOCKER_IMAGE}:${env.COMMIT_ID} --push .
-                        """
+                        '''
                     }
                 }
             }
