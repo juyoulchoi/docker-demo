@@ -70,7 +70,7 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v2/', 'dockerhub') {
+                    docker.withRegistry('https://index.docker.io/v2/', '6e025c89-6fb8-4e11-9894-10f0b0a40896') {
                         echo "Docker 이미지 빌드 및 푸시"
                         docker.build("${DOCKER_IMAGE}:${env.COMMIT_ID}", '.').push()
                     }
