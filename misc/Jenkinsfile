@@ -1,11 +1,10 @@
 pipeline {
     agent any
     tools {
-        nodejs "nodeJs"
+        nodejs "NodeJS 18"
     }
     environment {
         DOCKER_BUILDKIT = "1" // BuildKit 활성화
-        DOCKER_REGISTRY = 'registry-1.docker.io'
         DOCKER_IMAGE = "ejujin/docker-nodejs-demo"
     }
     stages {
@@ -16,7 +15,7 @@ pipeline {
                     sh "git rev-parse --short HEAD > .git/commit-id"
                     env.COMMIT_ID = readFile('.git/commit-id').trim()
 
-                    def nodejsTool = tool name: 'nodeJs', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
+                    def nodejsTool = tool name: 'NodeJS 18', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
                     env.PATH = "${nodejsTool}/bin:${env.PATH}"
                 }
             }
@@ -32,17 +31,17 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: '6e025c89-6fb8-4e11-9894-10f0b0a40896', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh """
                             echo "Logging into Docker Hub..."
                             echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
 
-                            echo "Building Docker image with BuildKit..."
-                            export DOCKER_BUILDKIT=1
-                            docker build -t \$DOCKER_IMAGE:\$COMMIT_ID .
+                            echo "Setting up Docker Buildx..."
+                            docker buildx create --name mybuilder --use
+                            docker buildx inspect --bootstrap
 
-                            echo "Pushing Docker image..."
-                            docker push \$DOCKER_IMAGE:\$COMMIT_ID
+                            echo "Building Docker image with Buildx..."
+                            docker buildx build --platform linux/amd64 -t \$DOCKER_IMAGE:\$COMMIT_ID --push .
                         """
                     }
                 }
