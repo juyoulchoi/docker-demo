@@ -4,6 +4,9 @@ node {
      checkout scm
      sh "git rev-parse --short HEAD > .git/commit-id"                        
      commit_id = readFile('.git/commit-id').trim()
+
+      def nodejsTool = tool name: 'NodeJS 18', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
+      env.PATH = "${nodejsTool}/bin:${env.PATH}"
    }
     stage('Setup') {
        nodejs(nodeJSInstallationName: 'nodejs') {
@@ -11,6 +14,11 @@ node {
        sh 'npm test'
      }
    }
+
+   stage('Build') {
+        sh 'node -v'
+   }
+
    stage('docker build/push') {
      docker.withRegistry('https://index.docker.io/v2/', 'dockerhub') {
        def app = docker.build("ejujin/docker-nodejs-demo:${commit_id}", '.').push()
