@@ -69,30 +69,36 @@ pipeline {
 
         stage('Docker Build & Push') {
             when {
-                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' || currentBuild.result == 'UNSTABLE' }
             }
             steps {
                 script {
                     docker.withRegistry('https://index.docker.io/v2/', 'dockerhub') {
                         echo "Buildx 사용 가능 여부 확인 중..."
-                        if (!sh(script: "docker buildx version > /dev/null 2>&1", returnStatus: true)) {
+                        def buildxExists = sh(script: "docker buildx version", returnStatus: true) == 0
+                        
+                        if (!buildxExists) {
                             echo "Buildx가 설치되지 않음. 설치 진행..."
                             sh """
                                 mkdir -p ~/.docker/cli-plugins
-                                curl -sL https://github.com/docker/buildx/releases/download/v0.20.1/buildx-v0.20.1.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
+                                curl -sL https://github.com/docker/buildx/releases/latest/download/buildx-v0.20.1.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
                                 chmod +x ~/.docker/cli-plugins/docker-buildx
                             """
                         }
 
                         echo "Docker Buildx 설정 중..."
-                        if (!sh(script: "docker buildx ls | grep -q mybuilder", returnStatus: true)) {
+                        def buildxList = sh(script: "docker buildx ls | grep -q mybuilder", returnStatus: true)
+                        if (buildxList != 0) {
                             sh "docker buildx create --name mybuilder --use"
                         } else {
                             sh "docker buildx use mybuilder"
                         }
 
                         echo "Docker 이미지 빌드 및 푸시"
-                        docker.build("${DOCKER_IMAGE}:${env.COMMIT_ID}", '.').push()
+                        sh """
+                            docker buildx inspect mybuilder || docker buildx create --name mybuilder --use
+                            docker buildx build --platform linux/amd64 -t ${DOCKER_IMAGE}:${env.COMMIT_ID} --push .
+                        """
                     }
                 }
             }
