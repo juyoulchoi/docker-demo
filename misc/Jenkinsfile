@@ -5,11 +5,11 @@ node {
      sh "git rev-parse --short HEAD > .git/commit-id"                        
      commit_id = readFile('.git/commit-id').trim()
 
-      def nodejsTool = tool name: 'NodeJS 18', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
+      def nodejsTool = tool name: 'NodeJS 23', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
       env.PATH = "${nodejsTool}/bin:${env.PATH}"
    }
     stage('Setup') {
-       nodejs(nodeJSInstallationName: 'nodejs') {
+       nodejs(nodeJSInstallationName: 'NodeJS 23') {
        sh 'npm install'
        sh 'npm test'
      }
