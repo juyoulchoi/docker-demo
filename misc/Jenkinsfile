@@ -37,8 +37,8 @@ pipeline {
                             echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
 
                             echo "Setting up Docker Buildx..."
-                            docker buildx create --name mybuilder --use
-                            docker buildx inspect --bootstrap
+                            docker build run mybuilder
+                            docker build inspect --bootstrap
 
                             echo "Building Docker image with Buildx..."
                             docker buildx build --platform linux/amd64 -t \$DOCKER_IMAGE:\$COMMIT_ID --push .
