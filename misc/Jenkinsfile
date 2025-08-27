@@ -6,11 +6,12 @@ node {
      commit_id = readFile('.git/commit-id').trim()
    }
    stage('test') {
-     nodejs(nodeJSInstallationName: 'nodejs') {
-       sh 'npm install --only=dev'
-       sh 'npm test'
-     }
-   }
+        nodejs(nodeJSInstallationName: 'nodejs-20') {   // Node 18/20 같은 최신 툴명
+          sh 'npm ci'
+          sh 'npm test'          // package.json의 "test": "npx mocha"
+          // 또는: sh 'npx mocha --reporter spec'
+        }
+      }
    stage('docker build/push') {
      docker.withRegistry('https://index.docker.io/v2/', 'dockerhub') {
        def app = docker.build("ejujin/docker-nodejs-demo:${commit_id}", '.').push()
