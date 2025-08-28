@@ -6,7 +6,7 @@ node {
      commit_id = readFile('.git/commit-id').trim()
    }
    stage('test') {
-        nodejs(nodeJSInstallationName: 'nodejs-20') {   // Node 18/20 같은 최신 툴명
+        nodejs(nodeJSInstallationName: 'nodejs') {   // Node 18/20 같은 최신 툴명
           sh 'npm ci'
           sh 'npm test'          // package.json의 "test": "npx mocha"
           // 또는: sh 'npx mocha --reporter spec'
