@@ -1,5 +1,11 @@
 node {
    def commit_id
+   stage('Clean Workspace') {
+         steps {
+             // 빌드 전 workspace 정리
+             cleanWs()
+         }
+     }
    stage('Preparation') {
      checkout scm
      sh "git rev-parse --short HEAD > .git/commit-id"
